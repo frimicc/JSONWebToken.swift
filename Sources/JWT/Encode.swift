@@ -18,7 +18,7 @@ public func encode(claims: ClaimSet, algorithm: Algorithm, headers: [String: Str
   let header = try! encoder.encodeString(headers)
   let payload = encoder.encodeString(claims.claims)!
   let signingInput = "\(header).\(payload)"
-  let signature = base64encode(algorithm.algorithm.sign(signingInput.data(using: .utf8)!))
+    let signature = base64encode(try! algorithm.algorithm.sign(signingInput.data(using: .utf8)!))
   return "\(signingInput).\(signature)"
 }
 
