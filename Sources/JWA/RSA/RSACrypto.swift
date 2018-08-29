@@ -15,23 +15,27 @@ extension RSAAlgorithm: SignAlgorithm {
                          kSecAttrKeyClass as String: kSecAttrKeyClassPrivate,
                          kSecAttrKeySizeInBits as String : 2048,
                          kSecReturnPersistentRef as String: true]
-        let keyData = CFDataCreate() //FIXME: make contain key Data
-        let secKey = SecKeyCreateFromData(keyData, keyParams as CFDictionary, &error)
-        guard SecKeyIsAlgorithmSupported(secKey!, .sign, hash.cryptoAlgorithm) else {
-            if error == nil {
-                throw "Can't sign message" as! Error
-            }
-            throw error!.takeRetainedValue() as Error
-        }
-
-        guard let signature = SecKeyCreateSignature(key as! SecKey, hash.cryptoAlgorithm, message as CFData, &error) else {
-            if error == nil {
-                throw "Can't sign message" as! Error
-            }
-            throw error!.takeRetainedValue() as Error
-        }
         
-        return signature as Data
+        key.withUnsafeBytes { (bytes: UnsafePointer<UInt8>) in
+            let keyData = CFDataCreate(kCFAllocatorDefault, bytes, key.count)
+            let secKey = SecKeyCreateFromData(keyData, keyParams as CFDictionary, &error)
+            guard SecKeyIsAlgorithmSupported(secKey!, .sign, hash.cryptoAlgorithm) else {
+                if error == nil {
+                    throw "Can't sign message" as! Error
+                }
+                throw error!.takeRetainedValue() as Error
+            }
+            
+            guard let signature = SecKeyCreateSignature(secKey, hash.cryptoAlgorithm, message as CFData, &error) else {
+                if error == nil {
+                    throw "Can't sign message" as! Error
+                }
+                throw error!.takeRetainedValue() as Error
+            }
+            
+            return signature as Data
+
+        }
     }
 }
 
