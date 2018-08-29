@@ -16,9 +16,9 @@ extension RSAAlgorithm: SignAlgorithm {
                          kSecAttrKeySizeInBits as String : 2048,
                          kSecReturnPersistentRef as String: true]
         
-        key.withUnsafeBytes { (bytes: UnsafePointer<UInt8>) in
+        let sig = try? key.withUnsafeBytes({ (bytes: UnsafePointer<UInt8>) -> Data? in
             let keyData = CFDataCreate(kCFAllocatorDefault, bytes, key.count)
-            let secKey = SecKeyCreateFromData(keyData, keyParams as CFDictionary, &error)
+            let secKey = SecKeyCreateFromData(keyParams as CFDictionary, keyData!, &error)
             guard SecKeyIsAlgorithmSupported(secKey!, .sign, hash.cryptoAlgorithm) else {
                 if error == nil {
                     throw "Can't sign message" as! Error
@@ -26,7 +26,7 @@ extension RSAAlgorithm: SignAlgorithm {
                 throw error!.takeRetainedValue() as Error
             }
             
-            guard let signature = SecKeyCreateSignature(secKey, hash.cryptoAlgorithm, message as CFData, &error) else {
+            guard let signature = SecKeyCreateSignature(secKey!, hash.cryptoAlgorithm, message as CFData, &error) else {
                 if error == nil {
                     throw "Can't sign message" as! Error
                 }
@@ -34,8 +34,9 @@ extension RSAAlgorithm: SignAlgorithm {
             }
             
             return signature as Data
-
-        }
+        })
+        guard let sign = sig else { return Data() }
+        return sign!
     }
 }
 
