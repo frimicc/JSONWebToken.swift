@@ -10,11 +10,12 @@ import Foundation
 
 extension RSAAlgorithm: SignAlgorithm {
     public func sign(_ message: Data) throws -> Data {
-        var error: Unmanaged<CFError>?
         let keyParams: [String : Any] = [kSecAttrKeyType as String: kSecAttrKeyTypeRSA,
-                         kSecAttrKeyClass as String: kSecAttrKeyClassPrivate,
-                         kSecAttrKeySizeInBits as String : 2048,
-                         kSecReturnPersistentRef as String: true]
+                                         kSecAttrKeyClass as String: kSecAttrKeyClassPrivate,
+                                         kSecAttrKeySizeInBits as String : 2048,
+                                         kSecReturnPersistentRef as String: true]
+
+        var error: Unmanaged<CFError>?
         
         let sig = try? key.withUnsafeBytes({ (bytes: UnsafePointer<UInt8>) -> Data? in
             let keyData = CFDataCreate(kCFAllocatorDefault, bytes, key.count)
@@ -42,17 +43,29 @@ extension RSAAlgorithm: SignAlgorithm {
 
 extension RSAAlgorithm: VerifyAlgorithm {
     public func verify(_ message: Data, signature: Data) throws -> Bool {
-        guard SecKeyIsAlgorithmSupported(key as! SecKey, .verify, hash.cryptoAlgorithm) else {
-            return false
-        }
+        let keyParams: [String : Any] = [kSecAttrKeyType as String: kSecAttrKeyTypeRSA,
+                                         kSecAttrKeyClass as String: kSecAttrKeyClassPublic,
+                                         kSecAttrKeySizeInBits as String : 2048,
+                                         kSecReturnPersistentRef as String: true]
 
         var error: Unmanaged<CFError>?
-        guard SecKeyVerifySignature(key as! SecKey, hash.cryptoAlgorithm, message as CFData, signature as CFData, &error) else {
-            return false
-        }
-        
-        // otherwise it worked
-        return true
+
+        let verified = key.withUnsafeBytes({ (bytes: UnsafePointer<UInt8>) -> Bool in
+            let keyData = CFDataCreate(kCFAllocatorDefault, bytes, key.count)
+            let secKey = SecKeyCreateFromData(keyParams as CFDictionary, keyData!, &error)
+            guard SecKeyIsAlgorithmSupported(secKey!, .sign, hash.cryptoAlgorithm) else {
+                return false
+            }
+            
+            guard SecKeyVerifySignature(secKey!, hash.cryptoAlgorithm, message as CFData, signature as CFData, &error) else {
+                return false
+            }
+            
+            // otherwise it worked
+            return true
+        })
+
+        return verified
     }
 }
 
