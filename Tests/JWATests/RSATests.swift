@@ -22,7 +22,9 @@ class RSAAlgorithmTests: XCTestCase {
     
     override func setUp() {
         do {
-            publicKey = try Data(contentsOf: URL(string: "file:///Users/michaelfriedman/src/JSONWebToken.swift/Tests/JWATests/rsa_public.pem")!)
+            let certificateData = try Data(contentsOf: URL(fileURLWithPath: "/Users/michaelfriedman/src/JSONWebToken.swift/Tests/JWATests/rsa_public.der"))
+            publicKey = certificateData // will be converted in RSA.swift
+//            publicKey = try Data(contentsOf: URL(string: "file:///Users/michaelfriedman/src/JSONWebToken.swift/Tests/JWATests/rsa_public.pem")!)
             privateKey = try Data(contentsOf: URL(string: "file:///Users/michaelfriedman/src/JSONWebToken.swift/Tests/JWATests/rsa_private.pem")!)
         } catch {
             // ignore errors

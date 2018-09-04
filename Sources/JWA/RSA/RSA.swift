@@ -10,6 +10,7 @@ import Foundation
 final public class RSAAlgorithm: Algorithm {
     public let key: Data
     public let hash: Hash
+    let secKey: SecKey
     
     public enum Hash {
         case sha256
@@ -20,6 +21,7 @@ final public class RSAAlgorithm: Algorithm {
     public init(key: Data, hash: Hash) {
         self.key = key
         self.hash = hash
+        self.secKey = RSAAlgorithm.secKeyFromData(data: key)!
     }
     
     public init?(key: String, hash: Hash) {
@@ -27,6 +29,7 @@ final public class RSAAlgorithm: Algorithm {
         
         self.key = key
         self.hash = hash
+        self.secKey = RSAAlgorithm.secKeyFromData(data: key)!
     }
     
     public var name: String {
@@ -38,5 +41,16 @@ final public class RSAAlgorithm: Algorithm {
         case .sha512:
             return "RS512"
         }
+    }
+    
+    static func secKeyFromData(data: Data) -> SecKey? {
+        let certificate = SecCertificateCreateWithData(nil, data as CFData)
+        var trust: SecTrust?
+        let policy = SecPolicyCreateBasicX509()
+        let status = SecTrustCreateWithCertificates(certificate!, policy, &trust)
+        if status == errSecSuccess {
+            return SecTrustCopyPublicKey(trust!)
+        }
+        return nil
     }
 }
